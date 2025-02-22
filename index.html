@@ -63,6 +63,10 @@
             width: 250px;
             cursor: pointer;
             position: relative;
+            transition: transform 0.3s ease-in-out;
+        }
+        .plan:hover, .plan.selected {
+            transform: scale(1.05);
         }
         .plan .indicator {
             position: absolute;
