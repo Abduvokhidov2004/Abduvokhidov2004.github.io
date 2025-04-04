@@ -3,205 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тарифные планы</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
-        body {
-            background-color: #f8f9fa;
-            text-align: center;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .toggle {
-            display: flex;
-            gap: 10px;
-        }
-        .toggle button {
-            padding: 10px;
-            border: none;
-            cursor: pointer;
-            background: #ddd;
-            border-radius: 5px;
-        }
-        .toggle button.active {
-            background: #007bff;
-            color: white;
-        }
-        h1 {
-            margin-bottom: 10px;
-        }
-        p {
-            margin-bottom: 20px;
-            color: gray;
-        }
-        .plans {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-        }
-        .plan {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 250px;
-            cursor: pointer;
-            position: relative;
-        }
-        .plan .indicator {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #ccc;
-            border-radius: 50%;
-            background: white;
-            transition: background 0.3s;
-        }
-        .plan.selected .indicator {
-            background: #007bff;
-            border-color: #007bff;
-        }
-        .plan .price{
-            color: black;
-            font-size: larger;
-        }
-        .plan .discount{
-            color: red;
-        }
-        .desktop-view {
-            display: flex;
-        }
-        .mobile-view {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-        }
-        .mobile-view .plan {
-            width: 90%;
-        }
-    </style>
-    <script>
-        function toggleView(view) {
-            const desktopBtn = document.getElementById("desktopBtn");
-            const mobileBtn = document.getElementById("mobileBtn");
-            const desktopView = document.querySelector(".desktop-view");
-            const mobileView = document.querySelector(".mobile-view");
-            
-            if (!desktopView || !mobileView) return;
-
-            if (view === 'mobile') {
-                desktopView.style.display = "none";
-                mobileView.style.display = "flex";
-                desktopBtn.classList.remove("active");
-                mobileBtn.classList.add("active");
-            } else {
-                desktopView.style.display = "flex";
-                mobileView.style.display = "none";
-                desktopBtn.classList.add("active");
-                mobileBtn.classList.remove("active");
-            }
-        }
-
-        function selectPlan(element) {
-            document.querySelectorAll('.plan').forEach(plan => plan.classList.remove('selected'));
-            element.classList.add('selected');
-        }
-    </script>
+    <title>Кинотеатр - Вариант 4</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Тарифные планы</h1>
-            <div class="toggle">
-                <button id="desktopBtn" class="active" onclick="toggleView('desktop')">Desktop</button>
-                <button id="mobileBtn" onclick="toggleView('mobile')">Mobile</button>
+    <!-- Header -->
+    <header>
+        <nav>
+            <ul class="left-menu">
+                <li><a href="#">Кинотеатры</a></li>
+                <li><a href="#">Акции</a></li>
+                <li><a href="#">Мультикарта</a></li>
+            </ul>
+            <a href="#" class="cabinet">
+                <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 32 32" style="enable-background:new 0 0 32 32;" xml:space="preserve">
+<g>
+	<g>
+		<path d="M16,14c-3.8598633,0-7-3.140625-7-7s3.1401367-7,7-7s7,3.140625,7,7S19.8598633,14,16,14z M16,2
+			c-2.7568359,0-5,2.2431641-5,5s2.2431641,5,5,5s5-2.2431641,5-5S18.7568359,2,16,2z"/>
+	</g>
+	<g>
+		<path d="M27,32c-0.5522461,0-1-0.4472656-1-1v-6.1152344c0-3.828125-3.1142578-6.9423828-6.9423828-6.9423828h-6.1152344
+			C9.1142578,17.9423828,6,21.0566406,6,24.8847656V31c0,0.5527344-0.4477539,1-1,1s-1-0.4472656-1-1v-6.1152344
+			c0-4.9306641,4.0117188-8.9423828,8.9423828-8.9423828h6.1152344C23.9882813,15.9423828,28,19.9541016,28,24.8847656V31
+			C28,31.5527344,27.5522461,32,27,32z"/>
+	</g>
+</g>
+</svg>
+            </a>
+        </nav>
+    </header>
+
+    <!-- Основной контент -->
+    <main>
+        <!-- Информация о сеансе -->
+        <section class="session-info">
+            <div class="movie-poster"></div>
+            <div class="session-details">
+                <h1>Мстители: Война Бесконечности</h1>
+                <div class="session-meta">
+                    <span id="current-date"></span> в <span id="session-time"></span> | Зал 4 | 2D
+                </div>
             </div>
+            <div class="age-limit">18+</div>
+        </section>
+
+        <!-- Экран -->
+        <div class="screen">
+            <img src="img/screen.svg" alt="Экран">
         </div>
-        <p>Выберите план в соответствии с вашими потребностями</p>
-        <div class="plans desktop-view">
-            <div class="plan" style="border-top: 5px solid orange;" onclick="selectPlan(this)">
-                <div class="indicator"></div>
-                <h2>Старт</h2>
-                <p class="duration">30 дней</p>
-                <p class="price">350 руб.</p>
-                <p>1 месяц</p>
+
+        <!-- Схема мест -->
+        <div class="row">
+            <div class="row-label"></div>
+            <div class="seats-map" id="seats-map"></div>
             </div>
-            <div class="plan" style="border-top: 5px solid blue;" onclick="selectPlan(this)">
-                <div class="indicator"></div>
-                <h2>Премиум</h2>
-                <p class="duration">60 дней</p>
-                <p class="price">550 руб.</p>
-                <p class="discount">Скидка 20% от обычной цены</p>
-                <p>2 месяца</p>
-            </div>
-            <div class="plan" style="border-top: 5px solid green;" onclick="selectPlan(this)">
-                <div class="indicator"></div>
-                <h2>Элита</h2>
-                <p class="duration">90 дней</p>
-                <p class="price" >550 руб.</p>
-                <p class="discount">Скидка 30% от обычной цены</p>
-                <p>3 месяца</p>
-            </div>
-            <div class="plan" style="border-top: 5px solid purple;" onclick="selectPlan(this)">
-                <div class="indicator"></div>
-                <h2>Бизнес</h2>
-                <p class="duration">120 дней</p>
-                <p class="price">1000 руб.</p>
-                <p class="discount">Скидка 40% от обычной цены</p>
-                <p>4 месяца</p>
-            </div>
+            <div class="row-label"></div>
         </div>
-        <div class="plans mobile-view">
-            <div class="plan" style="border-top: 5px solid orange;" onclick="selectPlan(this)">
-                <div class="indicator"></div>
-                <h2>Старт</h2>
-                <p class="duration">30 дней</p>
-                <p class="price">350 руб.</p>
-                <p>1 месяц</p>
+        
+        
+        <div class="legend" style="display: flex; flex-direction: row; justify-content: center; gap: 10px; margin-top: 10px; color: white;">
+            <div class="legend-item"><div class="seat1"></div> Стандартное</div>
+            <div class="legend-item"><div class="seat2"></div> Комфорт</div>
+            <div class="legend-item"><div class="seat3"></div> Занято</div>
+            <div class="legend-item"><div class="seat4"></div> Выбрано</div>
+        </div>
+
+        <!-- Панель управления -->
+        <section class="control-panel">
+            <div class="selected-seats">
+                <h2>Ваши места</h2>
+                <div id="selected-list"></div>
+                <div class="total-price">Итого: <span id="total">0</span> ₽</div>
             </div>
-            <div class="plan" style="border-top: 5px solid blue;" onclick="selectPlan(this)">
-                <div class="indicator"></div>
-                <h2>Премиум</h2>
-                <p class="duration">60 дней</p>
-                <p class="price">550 руб.</p>
-                <p class="discount">Скидка 20% от обычной цены</p>
-                <p>2 месяца</p>
+            <div class="actions">
+                <button class="btn buy-all">Выкупить весь зал</button>
+                <button class="btn confirm">Продолжить</button>
             </div>
-            <div class="plan" style="border-top: 5px solid green;" onclick="selectPlan(this)">
-                <div class="indicator"></div>
-                <h2>Элита</h2>
-                <p class="duration">90 дней</p>
-                <p class="price">550 руб.</p>
-                <p class="discount">Скидка 30% от обычной цены</p>
-                <p>3 месяца</p>
-            </div>
-            <div class="plan" style="border-top: 5px solid purple;" onclick="selectPlan(this)">
-                <div class="indicator"></div>
-                <h2>Бизнес</h2>
-                <p class="duration">120 дней</p>
-                <p class="price">1000 руб.</p>
-                <p class="discount">Скидка 40% от обычной цены</p>
-                <p>4 месяца</p>
+        </section>
+    </main>
+
+    <!-- Модальное окно -->
+    <div class="modal-overlay hidden">
+        <div class="modal">
+            <h3>ЗАБРОНИРУЙТЕ ВЕСЬ ЗАЛ ЦЕЛИКОМ СО СКИДКОЙ!</h3>
+            <p>Вы можете приобрести все доступные места со скидкой 20%</p>
+            <div class="modal-actions">
+                <button class="btn modal-confirm">Подтвердить</button>
+                <button class="btn modal-cancel">Отмена</button>
             </div>
         </div>
     </div>
+    <div class="modal-overlay modal-warning hidden">
+        <div class="modal-window">
+            <p>Выберите места рядом друг с другом или оставьте минимум 2 свободных места между ними. Промежуток в одно место не допускается.</p>
+            <button class="modal-close">Ок</button>
+        </div>
+    </div>
+    
+
+    <script src="js/script.js"></script>
 </body>
 </html>
