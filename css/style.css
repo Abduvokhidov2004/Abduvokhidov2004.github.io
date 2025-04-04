@@ -1,0 +1,357 @@
+/* style.css */
+:root {
+    --primary-color: #BD257F;
+    --secondary-color: #E5CFEE;
+    --disabled-color: rgba(80, 80, 80, 0.8);
+}
+
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background: #2a2a2a;
+}
+
+/* Header */
+header {
+    background: var(--primary-color);
+    padding: 1rem 2rem;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.left-menu {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.left-menu a {
+    color: white;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.left-menu a:hover {
+    text-decoration: underline;
+}
+
+.cabinet svg {
+    fill: white;
+    width: 24px;
+    height: 24px;
+}
+
+/* Основной контент */
+.session-info {
+    display: flex;
+    align-items: center;
+    padding: 2rem;
+    gap: 2rem;
+    background: #434343;
+    margin: 2rem;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.movie-poster {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-image: url(../img/poster.jpg);
+    background-size: cover;
+    flex-shrink: 0;
+}
+
+.session-details {
+    flex-grow: 1;
+}
+
+.session-meta {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.age-limit {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* Схема мест */
+.seats-map {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 2rem;
+    margin: 0px;
+    border-radius: 8px;
+}
+
+.row {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.seat {
+    width: 25px;
+    height: 25px;
+    background-image: url(../img/seat1.svg);
+    background-size: cover;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.2s;
+    position: relative;
+}
+.seat:hover{
+    background-image: url(../img/bilet.svg);
+}
+.seat::after {
+    content: attr(data-seat);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 0.8rem;
+}
+
+.seat.comfort {
+    background-image: url(../img/seat2.svg);
+}
+
+.seat.selected {
+    background-image: url(../img/seat4.svg);
+}
+
+.seat.occupied {
+    background-image: url(../img/seat3.svg);
+    cursor: not-allowed;
+}
+
+/* Панель управления */
+.control-panel {
+    background: #2a2a2a;
+    color: white;
+    margin: 2rem;
+    padding: 2rem;
+    border-radius: 8px;
+}
+
+.selected-seats {
+    margin-bottom: 1.5rem;
+}
+
+#selected-list {
+    margin: 1rem 0;
+    min-height: 100px;
+    border: 1px dashed #ddd;
+    padding: 1rem;
+}
+
+.actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn.confirm {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn.buy-all {
+    background: #D93C99;
+    color: white;
+}
+
+/* Модальное окно */
+.modal-overlay {
+    position: fixed;
+    background-color: #fff8e1;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4e342e;
+    text-align: center;
+}
+
+.modal {
+    background-color: #fff8e1;
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 500px;
+}
+.modal-confirm {
+    background-color: #ff9800;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+.modal-cancel {
+    background-color: #ff9800;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+.hidden {
+    display: none;
+}
+.screen img {
+    width: 60%;
+}
+.screen {
+    display: flex;
+    justify-content: center;
+}
+.seat1 {
+    width: 20px;
+    height: 20px;
+    background-image: url(../img/seat1.svg);
+    background-size: cover;
+    display: inline-block;
+}
+.seat2 {
+    width: 20px;
+    height: 20px;
+    background-image: url(../img/seat2.svg);
+    background-size: cover;
+    display: inline-block;
+}
+.seat3 {
+    width: 20px;
+    height: 20px;
+    background-image: url(../img/seat3.svg);
+    background-size: cover;
+    display: inline-block;
+}
+.seat4 {
+    width: 20px;
+    height: 20px;
+    background-image: url(../img/seat4.svg);
+    background-size: cover;
+    display: inline-block;
+}
+.modal-overlay.modal-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5); /* Полупрозрачный оранжевый фон */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal-overlay .modal-window {
+    background-color: #fff8e1;
+    padding: 24px 32px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    max-width: 480px;
+    width: 90%;
+    font-family: 'Segoe UI', sans-serif;
+    color: #4e342e;
+    text-align: center;
+    animation: fadeInScale 0.3s ease;
+}
+
+.modal-overlay .modal-window p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.modal-overlay .modal-close {
+    background-color: #ff9800;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.modal-overlay .modal-close:hover {
+    background-color: #fb8c00;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.4s;
+}
+.empty-space {
+    width: 25px; /* ширина прохода между местами */
+}
+.row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.row-label {
+    width: 30px;
+    text-align: center;
+    font-weight: bold;
+    color: #444;
+}
+
+.seats-container {
+    display: flex;
+    gap: 4px;
+}
