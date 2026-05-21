@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>SCADA HMI — Интеллектуальное отопление частного дома</title>
+
+  <!-- Tailwind CSS через CDN: удобно для GitHub Pages и быстрой демонстрации -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js для графиков трендов температуры, давления и мощности -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Lucide Icons: современные SVG-иконки для промышленного интерфейса -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Настройка Tailwind под тёмную SCADA-тему -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            scada: {
+              bg: "#050816",
+              panel: "#0B1020",
+              panel2: "#111827",
+              border: "#1F2937",
+              green: "#22C55E",
+              blue: "#38BDF8",
+              cyan: "#06B6D4",
+              orange: "#F97316",
+              red: "#EF4444",
+              yellow: "#EAB308",
+              muted: "#94A3B8"
+            }
+          },
+          boxShadow: {
+            neonBlue: "0 0 25px rgba(56, 189, 248, 0.35)",
+            neonGreen: "0 0 25px rgba(34, 197, 94, 0.35)",
+            neonOrange: "0 0 25px rgba(249, 115, 22, 0.35)"
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Базовый фон в стиле промышленного HMI */
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 34%),
+        radial-gradient(circle at top right, rgba(34, 197, 94, 0.10), transparent 30%),
+        linear-gradient(135deg, #050816 0%, #0B1020 55%, #020617 100%);
+      color: #E5E7EB;
+      min-height: 100vh;
+    }
+
+    /* Тонкая сетка на фоне */
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(34, 197, 94, 0.10));
+      border-color: rgba(56, 189, 248, 0.7);
+      color: #FFFFFF;
+      box-shadow: 0 0 22px rgba(56, 189, 248, 0.2);
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+      animation: fadeIn 0.28s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .status-dot {
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 999px;
+      display: inline-block;
+      box-shadow: 0 0 14px currentColor;
+    }
+
+    .pulse-soft {
+      animation: pulseSoft 1.8s infinite;
+    }
+
+    @keyframes pulseSoft {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.55;
+        transform: scale(0.92);
+      }
+    }
+
+    .vertical-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: #334155 transparent;
+    }
+
+    .vertical-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .vertical-scroll::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+
+<body class="grid-bg font-sans">
+  <div id="app" class="min-h-screen">
+
+    <!-- Верхняя панель -->
+    <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+      <div class="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 lg:px-6">
+
+        <div class="flex items-center gap-4">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300 shadow-neonBlue">
+            <i data-lucide="cpu" class="h-6 w-6"></i>
+          </div>
+
+          <div>
+            <h1 class="text-lg font-bold tracking-wide text-white md:text-xl">
+              SCADA HMI — Интеллектуальное отопление частного дома
+            </h1>
+            <p class="text-xs text-slate-400 md:text-sm">
+              ESP32 · MQTT · Node-RED · InfluxDB · Grafana · Web HMI
+            </p>
+          </div>
+        </div>
+
+        <div class="hidden items-center gap-3 lg:flex">
+          <div class="rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm">
+            <span class="text-slate-400">Время:</span>
+            <span id="currentTime" class="ml-2 font-semibold text-cyan-300">--:--:--</span>
+          </div>
+
+          <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+            <span class="status-dot pulse-soft bg-emerald-400 text-emerald-400"></span>
+            <span id="systemTopStatus" class="ml-2 font-semibold">Система в норме</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[280px_1fr] lg:px-6">
+
+      <!-- Боковое меню -->
+      <aside class="glass-panel rounded-3xl p-4 lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
+        <div class="mb-5">
+          <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Навигация HMI</p>
+        </div>
+
+        <nav class="space-y-2">
+          <button class="nav-item active flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm text-slate-300 transition"
+                  data-screen-target="overview">
+            <i data-lucide="layout-dashboard" class="h-5 w-5"></i>
+            <span>Обзор системы</span>
+          </button>
+
+          <button class="nav-item flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm text-slate-300 transition"
+                  data-screen-target="zones">
+            <i data-lucide="home" class="h-5 w-5"></i>
+            <span>Тепловые зоны</span>
+          </button>
+
+          <button class="nav-item flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm text-slate-300 transition"
+                  data-screen-target="boiler">
+            <i data-lucide="flame" class="h-5 w-5"></i>
+            <span>Котёл и контуры</span>
+          </button>
+
+          <button class="nav-item flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm text-slate-300 transition"
+                  data-screen-target="trends">
+            <i data-lucide="activity" class="h-5 w-5"></i>
+            <span>Тренды</span>
+          </button>
+
+          <button class="nav-item flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm text-slate-300 transition"
+                  data-screen-target="alarms">
+            <i data-lucide="shield-alert" class="h-5 w-5"></i>
+            <span>Аварии и защита</span>
+          </button>
+
+          <button class="nav-item flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm text-slate-300 transition"
+                  data-screen-target="schedule">
+            <i data-lucide="calendar-clock" class="h-5 w-5"></i>
+            <span>Расписание</span>
+          </button>
+
+          <button class="nav-item flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm text-slate-300 transition"
+                  data-screen-target="architecture">
+            <i data-lucide="network" class="h-5 w-5"></i>
+            <span>Архитектура ПО</span>
+          </button>
+
+          <button class="nav-item flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm text-slate-300 transition"
+                  data-screen-target="settings">
+            <i data-lucide="settings" class="h-5 w-5"></i>
+            <span>Настройки</span>
+          </button>
+        </nav>
+
+        <div class="mt-6 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+          <p class="mb-2 text-xs uppercase tracking-[0.18em] text-slate-500">Режим системы</p>
+
+          <select id="globalModeSelect"
+                  class="w-full rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400">
+            <option value="comfort">Комфорт</option>
+            <option value="economy">Экономия</option>
+            <option value="night">Ночь</option>
+            <option value="vacation">Отпуск</option>
+            <option value="antifreeze">Антифриз</option>
+            <option value="manual">Ручной режим</option>
+          </select>
+
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <button id="simulationToggle"
+                    class="rounded-2xl bg-cyan-500 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300">
+              Пауза
+            </button>
+
+            <button id="resetSimulation"
+                    class="rounded-2xl border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:border-orange-400 hover:text-orange-300">
+              Сброс
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Основная область SPA -->
+      <main class="space-y-4">
+
+        <!-- Экран 1: Обзор системы -->
+        <section id="screen-overview" class="screen active space-y-4">
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <article class="glass-panel rounded-3xl p-5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-slate-400">Средняя температура</p>
+                  <p class="mt-2 text-3xl font-bold text-white">
+                    <span id="avgTempValue">21.1</span> °C
+                  </p>
+                </div>
+                <div class="rounded-2xl bg-cyan-400/10 p-3 text-cyan-300">
+                  <i data-lucide="thermometer" class="h-7 w-7"></i>
+                </div>
+              </div>
+              <p class="mt-3 text-xs text-slate-500">Усреднение по 7 тепловым зонам</p>
+            </article>
+
+            <article class="glass-panel rounded-3xl p-5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-slate-400">Наружная температура</p>
+                  <p class="mt-2 text-3xl font-bold text-white">
+                    <span id="outdoorTempValue">-6.0</span> °C
+                  </p>
+                </div>
+                <div class="rounded-2xl bg-blue-400/10 p-3 text-blue-300">
+                  <i data-lucide="snowflake" class="h-7 w-7"></i>
+                </div>
+              </div>
+              <p class="mt-3 text-xs text-slate-500">Датчик установлен на северной стороне здания</p>
+            </article>
+
+            <article class="glass-panel rounded-3xl p-5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-slate-400">Мощность котла</p>
+                  <p class="mt-2 text-3xl font-bold text-white">
+                    <span id="boilerPowerValue">48</span> %
+                  </p>
+                </div>
+                <div class="rounded-2xl bg-orange-400/10 p-3 text-orange-300">
+                  <i data-lucide="flame" class="h-7 w-7"></i>
+                </div>
+              </div>
+              <p class="mt-3 text-xs text-slate-500">Модуляция по запросу тепла от зон</p>
+            </article>
+
+            <article class="glass-panel rounded-3xl p-5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-slate-400">Давление контура</p>
+                  <p class="mt-2 text-3xl font-bold text-white">
+                    <span id="pressureValue">1.45</span> бар
+                  </p>
+                </div>
+                <div class="rounded-2xl bg-emerald-400/10 p-3 text-emerald-300">
+                  <i data-lucide="gauge" class="h-7 w-7"></i>
+                </div>
+              </div>
+              <p class="mt-3 text-xs text-slate-500">Аварийный порог: ниже 0.7 бар</p>
+            </article>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1.5fr_1fr]">
+            <article class="glass-panel rounded-3xl p-5">
+              <div class="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 class="text-xl font-bold text-white">Главный экран мониторинга</h2>
+                  <p class="text-sm text-slate-400">Сводное состояние дома, котла, насосов и автоматики</p>
+                </div>
+                <span id="overviewStatusBadge"
+                      class="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300">
+                  Норма
+                </span>
+              </div>
+
+              <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div class="rounded-3xl border border-slate-800 bg-slate-950/60 p-4">
+                  <p class="text-sm text-slate-400">Температура подачи</p>
+                  <p class="mt-2 text-2xl font-bold text-cyan-300">
+                    <span id="supplyTempValue">54.0</span> °C
+                  </p>
+                  <div class="mt-3 h-2 rounded-full bg-slate-800">
+                    <div id="supplyTempBar" class="h-2 rounded-full bg-cyan-400 transition-all" style="width: 62%"></div>
+                  </div>
+                </div>
+
+                <div class="rounded-3xl border border-slate-800 bg-slate-950/60 p-4">
+                  <p class="text-sm text-slate-400">Температура обратки</p>
+                  <p class="mt-2 text-2xl font-bold text-blue-300">
+                    <span id="returnTempValue">42.0</span> °C
+                  </p>
+                  <div class="mt-3 h-2 rounded-full bg-slate-800">
+                    <div id="returnTempBar" class="h-2 rounded-full bg-blue-400 transition-all" style="width: 48%"></div>
+                  </div>
+                </div>
+
+                <div class="rounded-3xl border border-slate-800 bg-slate-950/60 p-4">
+                  <p class="text-sm text-slate-400">Запрос тепла</p>
+                  <p id="heatDemandValue" class="mt-2 text-2xl font-bold text-emerald-300">Активен</p>
+                  <div class="mt-3 flex items-center gap-2 text-sm text-slate-400">
+                    <span class="status-dot bg-emerald-400 text-emerald-400 pulse-soft"></span>
+                    <span>есть открытые контуры</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-5 h-[320px]">
+                <canvas id="overviewChart"></canvas>
+              </div>
+            </article>
+
+            <article class="glass-panel rounded-3xl p-5">
+              <h2 class="text-xl font-bold text-white">Журнал событий</h2>
+              <p class="mb-4 text-sm text-slate-400">Имитация SCADA/MQTT-сообщений и действий оператора</p>
+
+              <div id="eventLog"
+                   class="vertical-scroll h-[390px] space-y-2 overflow-y-auto rounded-3xl border border-slate-800 bg-slate-950/80 p-4 font-mono text-xs text-slate-300">
+                <div>[12:00:00] MQTT: система инициализирована</div>
+                <div>[12:00:01] Node-RED: подключение к брокеру успешно</div>
+                <div>[12:00:02] InfluxDB: запись телеметрии активна</div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Экран 2: Тепловые зоны -->
+        <section id="screen-zones" class="screen space-y-4">
+          <div class="glass-panel rounded-3xl p-5">
+            <h2 class="text-xl font-bold text-white">Управление тепловыми зонами</h2>
+            <p class="text-sm text-slate-400">
+              Каждая зона имеет собственный датчик температуры, уставку, исполнительный клапан и приоритет.
+            </p>
+          </div>
+
+          <div id="zonesGrid" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <!-- Карточки зон будут заполнены в app.js на основе массива данных -->
+          </div>
+        </section>
+
+        <!-- Экран 3: Котёл и контуры -->
+        <section id="screen-boiler" class="screen space-y-4">
+          <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <article class="glass-panel rounded-3xl p-5">
+              <div class="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 class="text-xl font-bold text-white">Газовый конденсационный котёл</h2>
+                  <p class="text-sm text-slate-400">Управление по логике запроса тепла и погодозависимой кривой</p>
+                </div>
+                <i data-lucide="flame" class="h-8 w-8 text-orange-300"></i>
+              </div>
+
+              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                  <p class="text-sm text-slate-400">Состояние горелки</p>
+                  <p id="burnerState" class="mt-2 text-2xl font-bold text-orange-300">Включена</p>
+                </div>
+
+                <div class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                  <p class="text-sm text-slate-400">Антициклирование</p>
+                  <p id="antiCycleState" class="mt-2 text-2xl font-bold text-emerald-300">Норма</p>
+                </div>
+
+                <div class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                  <p class="text-sm text-slate-400">Насос радиаторов</p>
+                  <p id="radiatorPumpState" class="mt-2 text-2xl font-bold text-cyan-300">Работает</p>
+                </div>
+
+                <div class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                  <p class="text-sm text-slate-400">Насос тёплого пола</p>
+                  <p id="floorPumpState" class="mt-2 text-2xl font-bold text-cyan-300">Работает</p>
+                </div>
+              </div>
+
+              <div class="mt-5 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="mb-2 flex items-center justify-between text-sm">
+                  <span class="text-slate-400">Модуляция мощности</span>
+                  <span class="font-semibold text-orange-300"><span id="boilerPowerBarText">48</span>%</span>
+                </div>
+                <div class="h-3 rounded-full bg-slate-800">
+                  <div id="boilerPowerBar"
+                       class="h-3 rounded-full bg-gradient-to-r from-orange-500 to-yellow-300 transition-all"
+                       style="width: 48%">
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-panel rounded-3xl p-5">
+              <h2 class="text-xl font-bold text-white">Погодозависимое регулирование</h2>
+              <p class="mb-5 text-sm text-slate-400">
+                Температура подачи рассчитывается по наружной температуре и ограничивается безопасными пределами.
+              </p>
+
+              <div class="space-y-4">
+                <div class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                  <p class="text-sm text-slate-400">Расчётная температура подачи</p>
+                  <p class="mt-2 text-3xl font-bold text-cyan-300">
+                    <span id="weatherSupplyValue">54.0</span> °C
+                  </p>
+                </div>
+
+                <div class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                  <p class="mb-2 text-sm text-slate-400">Кривая отопления</p>
+                  <div class="h-[210px]">
+                    <canvas id="weatherCurveChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Экран 4: Тренды -->
+        <section id="screen-trends" class="screen space-y-4">
+          <div class="glass-panel rounded-3xl p-5">
+            <h2 class="text-xl font-bold text-white">Тренды параметров</h2>
+            <p class="text-sm text-slate-400">
+              Исторические графики имитируют запись телеметрии в InfluxDB и отображение в Grafana/HMI.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <article class="glass-panel rounded-3xl p-5">
+              <h3 class="mb-4 font-semibold text-white">Температуры зон</h3>
+              <div class="h-[360px]">
+                <canvas id="zonesTrendChart"></canvas>
+              </div>
+            </article>
+
+            <article class="glass-panel rounded-3xl p-5">
+              <h3 class="mb-4 font-semibold text-white">Давление и мощность котла</h3>
+              <div class="h-[360px]">
+                <canvas id="systemTrendChart"></canvas>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Экран 5: Аварии и защита -->
+        <section id="screen-alarms" class="screen space-y-4">
+          <div class="glass-panel rounded-3xl p-5">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 class="text-xl font-bold text-white">Аварийные события и защитные логики</h2>
+                <p class="text-sm text-slate-400">
+                  Защиты выполняются с приоритетом выше обычного регулирования.
+                </p>
+              </div>
+
+              <button id="ackAlarmsButton"
+                      class="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-300">
+                Квитировать аварии
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1.2fr]">
+            <article class="glass-panel rounded-3xl p-5">
+              <h3 class="mb-4 font-semibold text-white">Имитация отказов</h3>
+
+              <div class="space-y-3">
+                <button id="faultSensorButton"
+                        class="w-full rounded-2xl border border-slate-700 px-4 py-3 text-left text-sm transition hover:border-red-400 hover:text-red-300">
+                  Отказ датчика температуры зоны 1
+                </button>
+
+                <button id="faultPressureButton"
+                        class="w-full rounded-2xl border border-slate-700 px-4 py-3 text-left text-sm transition hover:border-orange-400 hover:text-orange-300">
+                  Снижение давления теплоносителя
+                </button>
+
+                <button id="faultMqttButton"
+                        class="w-full rounded-2xl border border-slate-700 px-4 py-3 text-left text-sm transition hover:border-cyan-400 hover:text-cyan-300">
+                  Потеря связи с MQTT-брокером
+                </button>
+
+                <button id="faultOverheatButton"
+                        class="w-full rounded-2xl border border-slate-700 px-4 py-3 text-left text-sm transition hover:border-yellow-400 hover:text-yellow-300">
+                  Перегрев подающего трубопровода
+                </button>
+              </div>
+            </article>
+
+            <article class="glass-panel rounded-3xl p-5">
+              <h3 class="mb-4 font-semibold text-white">Активные аварии</h3>
+
+              <div id="activeAlarmsList" class="space-y-3">
+                <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-300">
+                  Аварий нет. Система работает в штатном режиме.
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Экран 6: Расписание -->
+        <section id="screen-schedule" class="screen space-y-4">
+          <div class="glass-panel rounded-3xl p-5">
+            <h2 class="text-xl font-bold text-white">Недельное расписание отопления</h2>
+            <p class="text-sm text-slate-400">
+              Расписание изменяет уставки зон в зависимости от времени суток и режима присутствия.
+            </p>
+          </div>
+
+          <article class="glass-panel rounded-3xl p-5">
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                <p class="font-semibold text-white">Утро</p>
+                <p class="mt-1 text-sm text-slate-400">06:00–08:00</p>
+                <p class="mt-3 text-2xl font-bold text-emerald-300">Комфорт</p>
+              </div>
+
+              <div class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                <p class="font-semibold text-white">День</p>
+                <p class="mt-1 text-sm text-slate-400">08:00–17:00</p>
+                <p class="mt-3 text-2xl font-bold text-cyan-300">Экономия</p>
+              </div>
+
+              <div class="rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                <p class="font-semibold text-white">Вечер</p>
+                <p class="mt-1 text-sm text-slate-400">17:00–23:00</p>
+                <p class="mt-3 text-2xl font-bold text-emerald-300">Комфорт</p>
+              </div>
+            </div>
+
+            <div class="mt-5 overflow-x-auto">
+              <table class="w-full min-w-[760px] overflow-hidden rounded-3xl text-sm">
+                <thead class="bg-slate-900 text-slate-300">
+                  <tr>
+                    <th class="px-4 py-3 text-left">Зона</th>
+                    <th class="px-4 py-3 text-left">Будни</th>
+                    <th class="px-4 py-3 text-left">Выходные</th>
+                    <th class="px-4 py-3 text-left">Ночной режим</th>
+                    <th class="px-4 py-3 text-left">Приоритет</th>
+                  </tr>
+                </thead>
+                <tbody id="scheduleTableBody" class="divide-y divide-slate-800 bg-slate-950/60">
+                  <!-- Заполняется в app.js -->
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <!-- Экран 7: Архитектура ПО -->
+        <section id="screen-architecture" class="screen space-y-4">
+          <div class="glass-panel rounded-3xl p-5">
+            <h2 class="text-xl font-bold text-white">Архитектура программного обеспечения</h2>
+            <p class="text-sm text-slate-400">
+              Демонстрация логики: датчики → ESP32 → MQTT → Node-RED → InfluxDB → Grafana/HMI.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 xl:grid-cols-5">
+            <div class="glass-panel rounded-3xl p-5 text-center">
+              <i data-lucide="thermometer" class="mx-auto h-9 w-9 text-cyan-300"></i>
+              <p class="mt-4 font-bold text-white">Датчики</p>
+              <p class="mt-2 text-xs text-slate-400">DS18B20, SHT31, давление, проток</p>
+            </div>
+
+            <div class="glass-panel rounded-3xl p-5 text-center">
+              <i data-lucide="microchip" class="mx-auto h-9 w-9 text-blue-300"></i>
+              <p class="mt-4 font-bold text-white">ESP32</p>
+              <p class="mt-2 text-xs text-slate-400">Сбор данных и управление реле</p>
+            </div>
+
+            <div class="glass-panel rounded-3xl p-5 text-center">
+              <i data-lucide="radio" class="mx-auto h-9 w-9 text-emerald-300"></i>
+              <p class="mt-4 font-bold text-white">MQTT</p>
+              <p class="mt-2 text-xs text-slate-400">Топики telemetry, command, alarm</p>
+            </div>
+
+            <div class="glass-panel rounded-3xl p-5 text-center">
+              <i data-lucide="workflow" class="mx-auto h-9 w-9 text-orange-300"></i>
+              <p class="mt-4 font-bold text-white">Node-RED</p>
+              <p class="mt-2 text-xs text-slate-400">Алгоритмы и маршрутизация</p>
+            </div>
+
+            <div class="glass-panel rounded-3xl p-5 text-center">
+              <i data-lucide="bar-chart-3" class="mx-auto h-9 w-9 text-cyan-300"></i>
+              <p class="mt-4 font-bold text-white">HMI</p>
+              <p class="mt-2 text-xs text-slate-400">SPA, тренды, аварии, управление</p>
+            </div>
+          </div>
+
+          <article class="glass-panel rounded-3xl p-5">
+            <h3 class="mb-4 font-semibold text-white">Основные MQTT-топики</h3>
+
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 font-mono text-sm text-cyan-300">
+                home/heating/zone/+/temperature
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 font-mono text-sm text-emerald-300">
+                home/heating/zone/+/setpoint
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 font-mono text-sm text-orange-300">
+                home/heating/boiler/power
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 font-mono text-sm text-blue-300">
+                home/heating/system/pressure
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 font-mono text-sm text-red-300">
+                home/heating/alarm/active
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 font-mono text-sm text-yellow-300">
+                home/heating/command/mode
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- Экран 8: Настройки -->
+        <section id="screen-settings" class="screen space-y-4">
+          <div class="glass-panel rounded-3xl p-5">
+            <h2 class="text-xl font-bold text-white">Настройки HMI и алгоритмов</h2>
+            <p class="text-sm text-slate-400">
+              Эти параметры используются симулятором и демонстрируют инженерный уровень доступа.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <article class="glass-panel rounded-3xl p-5">
+              <h3 class="mb-4 font-semibold text-white">Параметры регулирования</h3>
+
+              <div class="space-y-4">
+                <label class="block">
+                  <span class="text-sm text-slate-400">Гистерезис тёплого пола, °C</span>
+                  <input id="hysteresisInput" type="number" value="0.5" step="0.1"
+                         class="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-cyan-400">
+                </label>
+
+                <label class="block">
+                  <span class="text-sm text-slate-400">Минимальная температура подачи, °C</span>
+                  <input id="minSupplyInput" type="number" value="35"
+                         class="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-cyan-400">
+                </label>
+
+                <label class="block">
+                  <span class="text-sm text-slate-400">Максимальная температура подачи, °C</span>
+                  <input id="maxSupplyInput" type="number" value="70"
+                         class="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-cyan-400">
+                </label>
+              </div>
+            </article>
+
+            <article class="glass-panel rounded-3xl p-5">
+              <h3 class="mb-4 font-semibold text-white">Пороговые значения защит</h3>
+
+              <div class="space-y-4">
+                <label class="block">
+                  <span class="text-sm text-slate-400">Минимальное давление, бар</span>
+                  <input id="minPressureInput" type="number" value="0.7" step="0.1"
+                         class="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-orange-400">
+                </label>
+
+                <label class="block">
+                  <span class="text-sm text-slate-400">Порог перегрева подачи, °C</span>
+                  <input id="overheatInput" type="number" value="80"
+                         class="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-red-400">
+                </label>
+
+                <button id="saveSettingsButton"
+                        class="w-full rounded-2xl bg-cyan-500 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-300">
+                  Сохранить настройки
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- Контейнер уведомлений -->
+    <div id="toastContainer" class="fixed right-4 top-20 z-50 space-y-3"></div>
+  </div>
+
+  <!-- Основная логика будет вынесена в app.js на следующем шаге -->
+  <script src="./app.js"></script>
+
+  <script>
+    // Инициализация иконок Lucide после загрузки DOM.
+    // Основная динамическая логика будет реализована в app.js.
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
